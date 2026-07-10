@@ -1,6 +1,10 @@
 package com.hamster.share
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -12,15 +16,14 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.net.URLDecoder
 import java.util.concurrent.TimeUnit
 
 /**
@@ -52,6 +55,7 @@ class ShareReceiverActivity : AppCompatActivity() {
 
         // 检查是否已绑定
         if (!SessionStore.isBound(this)) {
+            tvProgress.text = getString(R.string.toast_not_bound)
             Toast.makeText(this, R.string.toast_not_bound, Toast.LENGTH_LONG).show()
             finishAfterDelay()
             return
@@ -60,6 +64,7 @@ class ShareReceiverActivity : AppCompatActivity() {
         // 收集所有待上传的图片 URI
         val uris = collectImageUris(intent)
         if (uris.isEmpty()) {
+            tvProgress.text = getString(R.string.toast_no_image)
             Toast.makeText(this, R.string.toast_no_image, Toast.LENGTH_SHORT).show()
             finishAfterDelay()
             return
@@ -68,6 +73,7 @@ class ShareReceiverActivity : AppCompatActivity() {
         // 立即将所有 content:// URI 的内容复制到缓存目录，因为 URI 权限是临时的
         val cachedFiles = uris.mapNotNull { uri -> copyToCache(uri) }
         if (cachedFiles.isEmpty()) {
+            tvProgress.text = getString(R.string.toast_read_failed)
             Toast.makeText(this, R.string.toast_read_failed, Toast.LENGTH_SHORT).show()
             finishAfterDelay()
             return
@@ -149,11 +155,11 @@ class ShareReceiverActivity : AppCompatActivity() {
             }
 
             val file = files[index]
-            val mimeType = guessMimeType(file)
-            val base64Data = encodeFileToBase64DataUrl(file, mimeType)
+            val encodedImage = encodeImageForUpload(file)
 
-            if (base64Data == null) {
+            if (encodedImage == null) {
                 failCount++
+                showUploadError(index + 1, getString(R.string.toast_encode_failed))
                 uploadNext(index + 1)
                 return
             }
@@ -166,18 +172,35 @@ class ShareReceiverActivity : AppCompatActivity() {
                 put("sid", SessionStore.getSid(this@ShareReceiverActivity) ?: "")
                 put("t", SessionStore.getT(this@ShareReceiverActivity) ?: "")
                 put("client", SessionStore.getClient(this@ShareReceiverActivity) ?: "eagle")
-                put("image", base64Data)
+                put("image", encodedImage.dataUrl)
                 put("id", fileId)
                 put("isOriginal", false)
                 put("imageInfo", JSONObject().apply {
                     put("originalBytes", file.length())
-                    put("compressedBytes", file.length())
+                    put("compressedBytes", encodedImage.bytes)
+                    put("width", encodedImage.width)
+                    put("height", encodedImage.height)
                 })
             }
 
-            val apiUrl = SessionStore.getApi(this) ?: ""
+            val apiUrl = SessionStore.getApi(this)?.trim()?.trimEnd('/') ?: ""
+            val sid = SessionStore.getSid(this) ?: ""
+            val token = SessionStore.getT(this) ?: ""
             val clientParam = SessionStore.getClient(this) ?: "eagle"
-            val uploadUrl = "$apiUrl/api/upload?client=$clientParam"
+            val uploadUrl = "$apiUrl/api/upload".toHttpUrlOrNull()
+                ?.newBuilder()
+                ?.addQueryParameter("sid", sid)
+                ?.addQueryParameter("t", token)
+                ?.addQueryParameter("client", clientParam)
+                ?.build()
+                ?.toString()
+
+            if (uploadUrl == null) {
+                failCount++
+                showUploadError(index + 1, getString(R.string.toast_invalid_api))
+                uploadNext(index + 1)
+                return
+            }
 
             val request = Request.Builder()
                 .url(uploadUrl)
@@ -187,20 +210,14 @@ class ShareReceiverActivity : AppCompatActivity() {
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: java.io.IOException) {
                     failCount++
-                    runOnUiThread {
-                        Toast.makeText(
-                            this@ShareReceiverActivity,
-                            getString(R.string.toast_network_error, index + 1),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                    showUploadError(index + 1, getString(R.string.toast_network_error_detail, e.message ?: "unknown"))
                     uploadNext(index + 1)
                 }
 
                 override fun onResponse(call: Call, response: okhttp3.Response) {
-                    val body = response.body?.string()
+                    val body = response.body?.string().orEmpty()
                     val respJson = try {
-                        JSONObject(body ?: "{}")
+                        JSONObject(body.ifEmpty { "{}" })
                     } catch (e: Exception) {
                         JSONObject()
                     }
@@ -220,6 +237,7 @@ class ShareReceiverActivity : AppCompatActivity() {
                         runOnUiThread {
                             tvProgress.text = getString(R.string.upload_quota_exceeded)
                         }
+                        response.close()
                         finishAfterDelay()
                         return
                     }
@@ -231,16 +249,11 @@ class ShareReceiverActivity : AppCompatActivity() {
                         // 显示云端返回的具体错误，方便排查
                         val errMsg = when {
                             error.isNotEmpty() -> error
+                            body.isNotEmpty() -> body.take(120)
                             !response.isSuccessful -> "HTTP ${response.code}"
                             else -> "未知错误"
                         }
-                        runOnUiThread {
-                            Toast.makeText(
-                                this@ShareReceiverActivity,
-                                "第 ${index + 1} 张上传失败: $errMsg",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
+                        showUploadError(index + 1, errMsg)
                     }
                     response.close()
                     uploadNext(index + 1)
@@ -251,14 +264,68 @@ class ShareReceiverActivity : AppCompatActivity() {
         uploadNext(0)
     }
 
+    private data class EncodedImage(
+        val dataUrl: String,
+        val bytes: Int,
+        val width: Int,
+        val height: Int
+    )
+
     /**
-     * 将文件编码为 base64 数据 URL（data:mime;base64,...）。
+     * 与 mobile-eagle.html 保持一致：图片压到最长边 2048，JPEG 质量 85%。
      */
-    private fun encodeFileToBase64DataUrl(file: File, mimeType: String): String? {
+    private fun encodeImageForUpload(file: File): EncodedImage? {
         return try {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.absolutePath, bounds)
+
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                return encodeFileAsOriginal(file)
+            }
+
+            val maxBound = 2048
+            var sampleSize = 1
+            while ((bounds.outWidth / sampleSize) > maxBound * 2 || (bounds.outHeight / sampleSize) > maxBound * 2) {
+                sampleSize *= 2
+            }
+
+            val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+            val bitmap = BitmapFactory.decodeFile(file.absolutePath, decodeOptions) ?: return encodeFileAsOriginal(file)
+
+            val scale = minOf(1f, maxBound.toFloat() / maxOf(bitmap.width, bitmap.height).toFloat())
+            val targetWidth = maxOf(1, (bitmap.width * scale).toInt())
+            val targetHeight = maxOf(1, (bitmap.height * scale).toInt())
+            val scaled = if (targetWidth == bitmap.width && targetHeight == bitmap.height) {
+                bitmap
+            } else {
+                Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+            }
+
+            val outputBitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.RGB_565)
+            Canvas(outputBitmap).apply {
+                drawColor(Color.WHITE)
+                drawBitmap(scaled, 0f, 0f, null)
+            }
+
+            val output = java.io.ByteArrayOutputStream()
+            outputBitmap.compress(Bitmap.CompressFormat.JPEG, 85, output)
+            val bytes = output.toByteArray()
+            val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
+            if (scaled !== bitmap) scaled.recycle()
+            bitmap.recycle()
+            outputBitmap.recycle()
+            EncodedImage("data:image/jpeg;base64,$encoded", bytes.size, targetWidth, targetHeight)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun encodeFileAsOriginal(file: File): EncodedImage? {
+        return try {
+            val mimeType = guessMimeType(file)
             val bytes = file.readBytes()
             val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
-            "data:$mimeType;base64,$encoded"
+            EncodedImage("data:$mimeType;base64,$encoded", bytes.size, 0, 0)
         } catch (e: Exception) {
             null
         }
@@ -268,7 +335,14 @@ class ShareReceiverActivity : AppCompatActivity() {
      * 根据文件内容猜测 MIME 类型，默认为 image/jpeg。
      */
     private fun guessMimeType(file: File): String {
-        val bytes = file.inputStream().use { it.readNBytes(8) }
+        val bytes = file.inputStream().use { input ->
+            ByteArray(12).also { buffer ->
+                val read = input.read(buffer)
+                if (read < buffer.size && read >= 0) {
+                    for (i in read until buffer.size) buffer[i] = 0
+                }
+            }
+        }
         // PNG 文件头：89 50 4E 47
         if (bytes.size >= 4 && bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte()
             && bytes[2] == 0x4E.toByte() && bytes[3] == 0x47.toByte()
@@ -278,11 +352,20 @@ class ShareReceiverActivity : AppCompatActivity() {
             && bytes[2] == 0x46.toByte() && bytes[3] == 0x38.toByte()
         ) return "image/gif"
         // WebP 文件头：52 49 46 46 ... 57 45 42 50
-        if (bytes.size >= 8 && bytes[0] == 0x52.toByte() && bytes[1] == 0x49.toByte()
+        if (bytes.size >= 12 && bytes[0] == 0x52.toByte() && bytes[1] == 0x49.toByte()
             && bytes[2] == 0x46.toByte() && bytes[3] == 0x46.toByte()
-            && bytes[4] == 0x57.toByte()
+            && bytes[8] == 0x57.toByte() && bytes[9] == 0x45.toByte()
+            && bytes[10] == 0x42.toByte() && bytes[11] == 0x50.toByte()
         ) return "image/webp"
         return "image/jpeg"
+    }
+
+    private fun showUploadError(index: Int, message: String) {
+        runOnUiThread {
+            val text = getString(R.string.upload_failed_detail, index, message)
+            tvProgress.text = text
+            Toast.makeText(this@ShareReceiverActivity, text, Toast.LENGTH_LONG).show()
+        }
     }
 
     /**

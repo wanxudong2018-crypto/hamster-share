@@ -1,6 +1,7 @@
 package com.hamster.share
 
 import android.os.Bundle
+import android.net.Uri
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -75,7 +76,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val params = parseQueryParams(url)
+        val params = parseBindingParams(url)
         val api = params["api"]
         val sid = params["sid"]
         val t = params["t"]
@@ -104,8 +105,33 @@ class MainActivity : AppCompatActivity() {
     /**
      * 从 URL 中解析查询参数。
      */
-    private fun parseQueryParams(url: String): Map<String, String> {
+    private fun parseBindingParams(url: String): Map<String, String> {
+        val uri = try {
+            Uri.parse(url)
+        } catch (e: Exception) {
+            null
+        }
+
         val result = mutableMapOf<String, String>()
+        if (uri != null) {
+            uri.getQueryParameter("api")?.let { result["api"] = it }
+            uri.getQueryParameter("sid")?.let { result["sid"] = it }
+            uri.getQueryParameter("t")?.let { result["t"] = it }
+            uri.getQueryParameter("client")?.let { result["client"] = it }
+
+            // 兼容“复制专属链接”：https://api.example.com/api/upload?sid=...&t=...&client=eagle
+            if (result["api"].isNullOrEmpty() && !result["sid"].isNullOrEmpty() && !result["t"].isNullOrEmpty()) {
+                val scheme = uri.scheme
+                val authority = uri.encodedAuthority
+                if (!scheme.isNullOrEmpty() && !authority.isNullOrEmpty()) {
+                    val path = uri.path.orEmpty()
+                    val basePath = if (path.endsWith("/api/upload")) path.removeSuffix("/api/upload") else ""
+                    result["api"] = "$scheme://$authority$basePath"
+                }
+            }
+            return result
+        }
+
         val queryIndex = url.indexOf('?')
         if (queryIndex < 0) return result
         val query = url.substring(queryIndex + 1)

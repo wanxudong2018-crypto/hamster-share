@@ -23,10 +23,10 @@ object SessionStore {
      */
     fun save(context: Context, api: String, sid: String, t: String, client: String) {
         prefs(context).edit()
-            .putString(KEY_API, api)
-            .putString(KEY_SID, sid)
-            .putString(KEY_T, t)
-            .putString(KEY_CLIENT, client)
+            .putString(KEY_API, api.trim().trimEnd('/'))
+            .putString(KEY_SID, sid.trim())
+            .putString(KEY_T, t.trim())
+            .putString(KEY_CLIENT, client.trim().ifEmpty { "eagle" })
             .apply()
     }
 
@@ -60,7 +60,8 @@ object SessionStore {
     fun isBound(context: Context): Boolean {
         val p = prefs(context)
         return !p.getString(KEY_API, null).isNullOrEmpty() &&
-                !p.getString(KEY_SID, null).isNullOrEmpty()
+                !p.getString(KEY_SID, null).isNullOrEmpty() &&
+                !p.getString(KEY_T, null).isNullOrEmpty()
     }
 
     /**
