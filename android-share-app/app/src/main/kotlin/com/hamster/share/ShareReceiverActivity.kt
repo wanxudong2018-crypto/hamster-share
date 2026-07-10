@@ -176,7 +176,8 @@ class ShareReceiverActivity : AppCompatActivity() {
             }
 
             val apiUrl = SessionStore.getApi(this) ?: ""
-            val uploadUrl = "$apiUrl/api/upload"
+            val clientParam = SessionStore.getClient(this) ?: "eagle"
+            val uploadUrl = "$apiUrl/api/upload?client=$clientParam"
 
             val request = Request.Builder()
                 .url(uploadUrl)
