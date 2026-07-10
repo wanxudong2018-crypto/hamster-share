@@ -205,9 +205,11 @@ class ShareReceiverActivity : AppCompatActivity() {
                         JSONObject()
                     }
 
+                    val ok = respJson.optBoolean("ok", false)
                     val error = respJson.optString("error", "")
                     val errorCode = respJson.optString("errorCode", error)
-                    if (error == "QUOTA_EXCEEDED" || errorCode == "QUOTA_EXCEEDED") {
+
+                    if (errorCode == "QUOTA_EXCEEDED") {
                         runOnUiThread {
                             Toast.makeText(
                                 this@ShareReceiverActivity,
@@ -215,7 +217,6 @@ class ShareReceiverActivity : AppCompatActivity() {
                                 Toast.LENGTH_LONG
                             ).show()
                         }
-                        // 配额超限，终止后续上传
                         runOnUiThread {
                             tvProgress.text = getString(R.string.upload_quota_exceeded)
                         }
@@ -223,10 +224,23 @@ class ShareReceiverActivity : AppCompatActivity() {
                         return
                     }
 
-                    if (response.isSuccessful && error.isEmpty()) {
+                    if (ok) {
                         successCount++
                     } else {
                         failCount++
+                        // 显示云端返回的具体错误，方便排查
+                        val errMsg = when {
+                            error.isNotEmpty() -> error
+                            !response.isSuccessful -> "HTTP ${response.code}"
+                            else -> "未知错误"
+                        }
+                        runOnUiThread {
+                            Toast.makeText(
+                                this@ShareReceiverActivity,
+                                "第 ${index + 1} 张上传失败: $errMsg",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     }
                     response.close()
                     uploadNext(index + 1)
