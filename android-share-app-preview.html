@@ -304,7 +304,7 @@
                     <img class="brand-img" src="eagle-mobile-upload%20%E4%BA%91%E7%AB%AF/Eagle.png" alt="仓鼠快传 Send to Eagle">
                     <div class="brand-desc">即刻将图片无线快传至 Eagle</div>
                 </div>
-                <div class="upload-frame">
+                <div class="upload-frame" id="uploadFrame">
                     <div class="upload-inner">
                         <div class="folder">
                             <svg width="64" height="60" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -369,53 +369,61 @@
                 cls: '',
                 progress: '0%',
                 url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
-                btn: '绑定电脑端插件'
+                btn: '绑定电脑端插件',
+                hideUpload: false
             },
             bound: {
                 title: '已绑定，可从系统分享传图',
                 cls: 'success',
                 progress: '100%',
                 url: '已绑定电脑端插件。现在可以从相册、微信、文件管理器原生分享图片到仓鼠快传。',
-                btn: '断开连接'
+                btn: '断开连接',
+                hideUpload: true
             },
             uploading: {
                 title: '正在上传 12/24',
                 cls: 'uploading',
                 progress: '45%',
                 url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
-                btn: '绑定电脑端插件'
+                btn: '绑定电脑端插件',
+                hideUpload: false
             },
             success: {
                 title: '全部上传成功（共 24 张）',
                 cls: 'success',
                 progress: '100%',
                 url: '已发送至电脑端仓鼠快传，请在 Eagle 中查看导入结果。',
-                btn: '绑定电脑端插件'
+                btn: '绑定电脑端插件',
+                hideUpload: false
             },
             quota: {
                 title: '今日免费额度已用完\n激活永久会员后可继续上传',
                 cls: 'quota',
                 progress: '100%',
                 url: '免费额度已用完。激活永久会员后可继续从相册、微信、文件管理器原生分享传图。',
-                btn: '绑定电脑端插件'
+                btn: '绑定电脑端插件',
+                hideUpload: false
             },
             error: {
                 title: '第 1 张上传失败：网络错误',
                 cls: 'error',
                 progress: '100%',
                 url: '请检查网络，或重新绑定电脑端插件地址后再试。',
-                btn: '绑定电脑端插件'
+                btn: '绑定电脑端插件',
+                hideUpload: false
             },
             unbound: {
                 title: '请先绑定电脑端插件',
                 cls: 'unbound',
                 progress: '0%',
                 url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里完成绑定。',
-                btn: '绑定电脑端插件'
+                btn: '绑定电脑端插件',
+                hideUpload: false
             }
         };
 
         const phone = document.getElementById('phone');
+        const uploadFrame = document.getElementById('uploadFrame');
         const uploadTitle = document.getElementById('uploadTitle');
         const progressFill = document.getElementById('progressFill');
         const urlBox = document.getElementById('urlBox');
@@ -425,6 +433,7 @@
         function renderState(name) {
             const state = states[name];
             phone.className = `phone ${state.cls}`.trim();
+            uploadFrame.style.display = state.hideUpload ? 'none' : 'block';
             uploadTitle.textContent = state.title;
             progressFill.style.width = state.progress;
             urlBox.value = state.url;

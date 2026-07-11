@@ -40,6 +40,7 @@
                 android:layout_marginBottom="12dp" />
 
             <LinearLayout
+                android:id="@+id/layoutUploadFrame"
                 android:layout_width="match_parent"
                 android:layout_height="250dp"
                 android:orientation="vertical"
@@ -48,6 +49,7 @@
                 android:padding="12dp">
 
                 <LinearLayout
+                    android:id="@+id/uploadZone"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical"

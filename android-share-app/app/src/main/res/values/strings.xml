@@ -1,24 +1,36 @@
 <resources>
     <string name="app_name">仓鼠快传</string>
+    <string name="brand_title">仓鼠快传</string>
+    <string name="brand_subtitle">Send to Eagle</string>
+    <string name="brand_desc">即刻将图片无线快传至 Eagle</string>
+    <string name="folder_icon">▣</string>
 
     <!-- 主界面 -->
-    <string name="status_unbound">未连接电脑</string>
-    <string name="status_bound">已连接电脑</string>
+    <string name="status_unbound">点击选择或拍摄图片/视频</string>
+    <string name="status_bound">已绑定，可从系统分享传图</string>
     <string name="hint_paste_url">粘贴手机端 URL</string>
+    <string name="hint_paste_url_long">打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。</string>
     <string name="btn_bind">绑定</string>
+    <string name="btn_bind_desktop">绑定电脑端插件</string>
     <string name="btn_disconnect">断开连接</string>
     <string name="session_info">API: %1$s\nSID: %2$s\nT: %3$s</string>
     <string name="label_unbound_title">尚未绑定电脑会话</string>
     <string name="label_unbound_desc">请在电脑端仓鼠快传页面扫描或复制手机URL，粘贴到下方：</string>
     <string name="label_bound_title">已绑定会话</string>
-    <string name="label_bound_desc">现在可以从其他应用分享图片到仓鼠快传了</string>
+    <string name="label_bound_desc">已绑定电脑端插件。现在可以从相册、微信、文件管理器原生分享图片到仓鼠快传。</string>
+    <string name="bind_section_title">绑定插件地址</string>
+    <string name="video_guide">视频引导</string>
+    <string name="share_bind_hint">打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到绑定页后即可从相册、微信、文件管理器原生分享传图。</string>
 
     <!-- 上传界面 -->
     <string name="uploading_progress">正在上传 %1$d/%2$d</string>
+    <string name="uploading_pending">正在准备上传</string>
     <string name="upload_all_success">全部上传成功（共 %1$d 张）</string>
     <string name="upload_partial">成功 %1$d 张，失败 %2$d 张</string>
     <string name="upload_quota_exceeded">今日免费额度已用完</string>
+    <string name="upload_quota_exceeded_detail">今日免费额度已用完\n激活永久会员后可继续上传</string>
     <string name="upload_failed_detail">第 %1$d 张上传失败：%2$s</string>
+    <string name="btn_activate_member">激活永久会员</string>
 
     <!-- Toast 提示 -->
     <string name="toast_empty_url">请输入 URL</string>
@@ -28,10 +40,12 @@
     <string name="toast_disconnected">已断开连接</string>
     <string name="toast_not_bound">请先在仓鼠快传 App 中绑定电脑会话</string>
     <string name="toast_no_image">未收到图片</string>
+    <string name="chooser_select_or_capture">选择或拍摄图片/视频</string>
     <string name="toast_read_failed">读取图片失败</string>
     <string name="toast_encode_failed">图片处理失败，请换一张图片重试</string>
     <string name="toast_network_error">第 %1$d 张上传失败（网络错误）</string>
     <string name="toast_network_error_detail">网络错误：%1$s</string>
     <string name="toast_quota_exceeded">今日免费额度已用完，上传终止</string>
     <string name="toast_invalid_api">绑定的 API 地址无效，请重新绑定</string>
+    <string name="toast_open_purchase_failed">无法打开激活页面，请稍后重试</string>
 </resources>

@@ -10,6 +10,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
+import android.view.View
+import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -32,8 +34,12 @@ import java.util.concurrent.TimeUnit
  */
 class ShareReceiverActivity : AppCompatActivity() {
 
+    private val purchaseUrl = "https://www.ifdian.net/item/9e5ce82c4ea411f19fd852540025c377?utm_source=copylink&utm_medium=link"
+
     private lateinit var tvProgress: TextView
     private lateinit var progressBar: ProgressBar
+    private lateinit var btnActivateMember: Button
+    private lateinit var btnBindShortcut: Button
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -52,12 +58,15 @@ class ShareReceiverActivity : AppCompatActivity() {
 
         tvProgress = findViewById(R.id.tvProgress)
         progressBar = findViewById(R.id.progressBar)
+        btnActivateMember = findViewById(R.id.btnActivateMember)
+        btnActivateMember.setOnClickListener { openPurchasePage() }
+        btnBindShortcut = findViewById(R.id.btnBindShortcut)
+        btnBindShortcut.setOnClickListener { openBindPage() }
 
         // 检查是否已绑定
         if (!SessionStore.isBound(this)) {
             tvProgress.text = getString(R.string.toast_not_bound)
             Toast.makeText(this, R.string.toast_not_bound, Toast.LENGTH_LONG).show()
-            finishAfterDelay()
             return
         }
 
@@ -137,6 +146,7 @@ class ShareReceiverActivity : AppCompatActivity() {
                     getString(R.string.upload_partial, successCount, failCount)
                 }
                 runOnUiThread {
+                    progressBar.visibility = View.VISIBLE
                     tvProgress.text = msg
                     progressBar.isIndeterminate = false
                     progressBar.max = 1
@@ -148,6 +158,7 @@ class ShareReceiverActivity : AppCompatActivity() {
 
             // 更新进度
             runOnUiThread {
+                progressBar.visibility = View.VISIBLE
                 tvProgress.text = getString(R.string.uploading_progress, index + 1, total)
                 progressBar.isIndeterminate = false
                 progressBar.max = total
@@ -227,18 +238,8 @@ class ShareReceiverActivity : AppCompatActivity() {
                     val errorCode = respJson.optString("errorCode", error)
 
                     if (errorCode == "QUOTA_EXCEEDED") {
-                        runOnUiThread {
-                            Toast.makeText(
-                                this@ShareReceiverActivity,
-                                R.string.toast_quota_exceeded,
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                        runOnUiThread {
-                            tvProgress.text = getString(R.string.upload_quota_exceeded)
-                        }
+                        showQuotaExceeded()
                         response.close()
-                        finishAfterDelay()
                         return
                     }
 
@@ -362,10 +363,36 @@ class ShareReceiverActivity : AppCompatActivity() {
 
     private fun showUploadError(index: Int, message: String) {
         runOnUiThread {
+            progressBar.visibility = View.VISIBLE
             val text = getString(R.string.upload_failed_detail, index, message)
             tvProgress.text = text
             Toast.makeText(this@ShareReceiverActivity, text, Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun showQuotaExceeded() {
+        runOnUiThread {
+            progressBar.isIndeterminate = false
+            progressBar.max = 1
+            progressBar.progress = 1
+            progressBar.visibility = View.GONE
+            tvProgress.text = getString(R.string.upload_quota_exceeded_detail)
+            btnActivateMember.visibility = View.VISIBLE
+            Toast.makeText(this@ShareReceiverActivity, R.string.toast_quota_exceeded, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun openPurchasePage() {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(purchaseUrl))
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, R.string.toast_open_purchase_failed, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun openBindPage() {
+        startActivity(Intent(this, MainActivity::class.java))
     }
 
     /**
