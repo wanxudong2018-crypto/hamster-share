@@ -3,6 +3,7 @@ package com.hamster.share
 import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
@@ -12,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.io.File
 import java.net.URLDecoder
 
@@ -21,7 +23,9 @@ import java.net.URLDecoder
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        private const val REQUEST_PICK_MEDIA = 2001
+        private const val REQUEST_PICK_FILES = 2001
+        private const val REQUEST_PICK_GALLERY = 2002
+        private const val REQUEST_CAPTURE_IMAGE = 2003
     }
 
     private lateinit var tvStatus: TextView
@@ -60,10 +64,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != REQUEST_PICK_MEDIA || resultCode != RESULT_OK) return
+        if (requestCode !in setOf(REQUEST_PICK_FILES, REQUEST_PICK_GALLERY, REQUEST_CAPTURE_IMAGE)) {
+            return
+        }
+        if (resultCode != RESULT_OK) {
+            if (requestCode == REQUEST_CAPTURE_IMAGE) {
+                pendingCameraUri = null
+            }
+            return
+        }
 
-        val uris = collectResultUris(data)
-        val finalUris = if (uris.isNotEmpty()) uris else pendingCameraUri?.let { listOf(it) }.orEmpty()
+        val finalUris = when (requestCode) {
+            REQUEST_CAPTURE_IMAGE -> pendingCameraUri?.let { listOf(it) }.orEmpty()
+            else -> collectResultUris(data)
+        }
         pendingCameraUri = null
 
         if (finalUris.isEmpty()) {
@@ -143,6 +157,30 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        val dialog = BottomSheetDialog(this)
+        val contentView = layoutInflater.inflate(R.layout.dialog_media_chooser, null)
+        dialog.setContentView(contentView)
+
+        contentView.findViewById<View>(R.id.btnCloseChooser).setOnClickListener {
+            dialog.dismiss()
+        }
+        contentView.findViewById<View>(R.id.optionCamera).setOnClickListener {
+            dialog.dismiss()
+            openCameraPicker()
+        }
+        contentView.findViewById<View>(R.id.optionAlbum).setOnClickListener {
+            dialog.dismiss()
+            openAlbumPicker()
+        }
+        contentView.findViewById<View>(R.id.optionFiles).setOnClickListener {
+            dialog.dismiss()
+            openFilesPicker()
+        }
+
+        dialog.show()
+    }
+
+    private fun openFilesPicker() {
         val pickIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
             type = "*/*"
             putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
@@ -150,12 +188,43 @@ class MainActivity : AppCompatActivity() {
             addCategory(Intent.CATEGORY_OPENABLE)
         }
 
-        val cameraIntent = createCameraIntent()
-        val chooser = Intent.createChooser(pickIntent, getString(R.string.chooser_select_or_capture))
-        if (cameraIntent != null) {
-            chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(cameraIntent))
+        launchPicker(
+            Intent.createChooser(pickIntent, getString(R.string.chooser_pick_files_title)),
+            REQUEST_PICK_FILES
+        )
+    }
+
+    private fun openAlbumPicker() {
+        val galleryIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Intent(MediaStore.ACTION_PICK_IMAGES).apply {
+                putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 50)
+            }
+        } else {
+            Intent(Intent.ACTION_GET_CONTENT).apply {
+                type = "image/*"
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                addCategory(Intent.CATEGORY_OPENABLE)
+            }
         }
-        startActivityForResult(chooser, REQUEST_PICK_MEDIA)
+
+        launchPicker(galleryIntent, REQUEST_PICK_GALLERY)
+    }
+
+    private fun openCameraPicker() {
+        val cameraIntent = createCameraIntent()
+        if (cameraIntent == null) {
+            Toast.makeText(this, R.string.toast_open_picker_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        launchPicker(cameraIntent, REQUEST_CAPTURE_IMAGE)
+    }
+
+    private fun launchPicker(intent: Intent, requestCode: Int) {
+        try {
+            startActivityForResult(intent, requestCode)
+        } catch (e: Exception) {
+            Toast.makeText(this, R.string.toast_open_picker_failed, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun createCameraIntent(): Intent? {

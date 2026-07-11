@@ -7,7 +7,7 @@
 
     <!-- 主界面 -->
     <string name="status_unbound">点击选择或拍摄图片/视频</string>
-    <string name="status_bound">已绑定，可从系统分享传图</string>
+    <string name="status_bound">点击选择或拍摄图片/视频</string>
     <string name="hint_paste_url">粘贴手机端 URL</string>
     <string name="hint_paste_url_long">打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。</string>
     <string name="btn_bind">绑定</string>
@@ -41,6 +41,12 @@
     <string name="toast_not_bound">请先在仓鼠快传 App 中绑定电脑会话</string>
     <string name="toast_no_image">未收到图片</string>
     <string name="chooser_select_or_capture">选择或拍摄图片/视频</string>
+    <string name="chooser_pick_camera">相机</string>
+    <string name="chooser_pick_album">相册</string>
+    <string name="chooser_pick_files">文件</string>
+    <string name="chooser_pick_files_title">选择图片或视频文件</string>
+    <string name="chooser_close">关闭</string>
+    <string name="toast_open_picker_failed">无法打开该入口，请检查系统应用</string>
     <string name="toast_read_failed">读取图片失败</string>
     <string name="toast_encode_failed">图片处理失败，请换一张图片重试</string>
     <string name="toast_network_error">第 %1$d 张上传失败（网络错误）</string>

@@ -18,7 +18,7 @@
             android:paddingStart="24dp"
             android:paddingTop="32dp"
             android:paddingEnd="24dp"
-            android:paddingBottom="12dp">
+            android:paddingBottom="24dp">
 
             <ImageView
                 android:layout_width="180dp"
@@ -92,7 +92,7 @@
             android:orientation="vertical"
             android:background="@drawable/bg_bottom_panel"
             android:paddingStart="24dp"
-            android:paddingTop="20dp"
+            android:paddingTop="24dp"
             android:paddingEnd="24dp"
             android:paddingBottom="28dp">
 
