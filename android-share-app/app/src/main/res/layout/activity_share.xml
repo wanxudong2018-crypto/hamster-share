@@ -71,7 +71,7 @@
                         android:textStyle="normal"
                         android:textColor="@color/on_surface"
                         android:gravity="center"
-                        android:minHeight="40dp"
+                        android:minHeight="50dp"
                         android:lineSpacingExtra="3dp" />
 
                     <ProgressBar
@@ -83,7 +83,7 @@
                         android:progressTint="@color/success"
                         android:progressBackgroundTint="@color/success_border"
                         android:indeterminateTint="@color/success"
-                        android:layout_marginTop="8dp" />
+                        android:layout_marginTop="12dp" />
 
                     <Button
                         android:id="@+id/btnActivateMember"
