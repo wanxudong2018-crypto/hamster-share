@@ -140,17 +140,22 @@ class ShareReceiverActivity : AppCompatActivity() {
         fun uploadNext(index: Int) {
             if (index >= total) {
                 // 全部上传完成
-                val msg = if (failCount == 0) {
+                val allSuccess = failCount == 0
+                val msg = if (allSuccess) {
                     getString(R.string.upload_all_success, total)
                 } else {
                     getString(R.string.upload_partial, successCount, failCount)
                 }
                 runOnUiThread {
-                    progressBar.visibility = View.VISIBLE
                     tvProgress.text = msg
-                    progressBar.isIndeterminate = false
-                    progressBar.max = 1
-                    progressBar.progress = 1
+                    if (allSuccess) {
+                        progressBar.visibility = View.VISIBLE
+                        progressBar.isIndeterminate = false
+                        progressBar.max = 1
+                        progressBar.progress = 1
+                    } else {
+                        progressBar.visibility = View.GONE
+                    }
                 }
                 finishAfterDelay()
                 return
@@ -363,7 +368,7 @@ class ShareReceiverActivity : AppCompatActivity() {
 
     private fun showUploadError(index: Int, message: String) {
         runOnUiThread {
-            progressBar.visibility = View.VISIBLE
+            progressBar.visibility = View.GONE
             val text = getString(R.string.upload_failed_detail, index, message)
             tvProgress.text = text
             Toast.makeText(this@ShareReceiverActivity, text, Toast.LENGTH_LONG).show()
