@@ -161,16 +161,21 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
-                <TextView
+                <EditText
+                    android:id="@+id/etBoundUrl"
                     android:layout_width="match_parent"
                     android:layout_height="100dp"
                     android:background="@drawable/bg_url_input"
-                    android:gravity="center_vertical"
+                    android:gravity="top"
+                    android:inputType="textMultiLine|textUri"
                     android:padding="16dp"
-                    android:text="@string/label_bound_desc"
-                    android:textColor="@color/on_surface_variant"
+                    android:textColor="@color/on_surface"
                     android:textSize="14sp"
-                    android:lineSpacingExtra="3dp" />
+                    android:textIsSelectable="true"
+                    android:cursorVisible="false"
+                    android:focusable="false"
+                    android:clickable="false"
+                    android:longClickable="true" />
 
                 <Button
                     android:id="@+id/btnDisconnect"

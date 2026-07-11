@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
     private lateinit var tvSessionInfo: TextView
     private lateinit var etUrl: EditText
+    private lateinit var etBoundUrl: EditText
     private lateinit var btnBind: Button
     private lateinit var btnDisconnect: Button
     private lateinit var layoutBound: View
@@ -42,6 +43,7 @@ class MainActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tvStatus)
         tvSessionInfo = findViewById(R.id.tvSessionInfo)
         etUrl = findViewById(R.id.etUrl)
+        etBoundUrl = findViewById(R.id.etBoundUrl)
         btnBind = findViewById(R.id.btnBind)
         btnDisconnect = findViewById(R.id.btnDisconnect)
         layoutBound = findViewById(R.id.layoutBound)
@@ -84,7 +86,10 @@ class MainActivity : AppCompatActivity() {
         if (SessionStore.isBound(this)) {
             layoutBound.visibility = View.VISIBLE
             layoutUnbound.visibility = View.GONE
-            layoutUploadFrame.visibility = View.GONE
+            layoutUploadFrame.visibility = View.VISIBLE
+            tvStatus.text = getString(R.string.status_bound)
+            tvSessionInfo.text = ""
+            etBoundUrl.setText(getBoundLinkPreview())
         } else {
             layoutBound.visibility = View.GONE
             layoutUnbound.visibility = View.VISIBLE
@@ -117,7 +122,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        SessionStore.save(this, api, sid, t, client ?: "eagle")
+        SessionStore.save(this, api, sid, t, client ?: "eagle", url)
         Toast.makeText(this, R.string.toast_bind_success, Toast.LENGTH_SHORT).show()
         etUrl.text.clear()
         refreshUI()
@@ -198,6 +203,25 @@ class MainActivity : AppCompatActivity() {
             grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivity(intent)
+    }
+
+    private fun getBoundLinkPreview(): String {
+        SessionStore.getBindUrl(this)?.takeIf { it.isNotBlank() }?.let { return it }
+
+        val api = SessionStore.getApi(this)?.trim()?.trimEnd('/') ?: return ""
+        val sid = SessionStore.getSid(this)?.trim().orEmpty()
+        val token = SessionStore.getT(this)?.trim().orEmpty()
+        val client = SessionStore.getClient(this)?.trim().orEmpty().ifEmpty { "eagle" }
+
+        if (sid.isEmpty() || token.isEmpty()) return ""
+
+        return Uri.parse("$api/api/upload")
+            .buildUpon()
+            .appendQueryParameter("sid", sid)
+            .appendQueryParameter("t", token)
+            .appendQueryParameter("client", client)
+            .build()
+            .toString()
     }
 
     /**

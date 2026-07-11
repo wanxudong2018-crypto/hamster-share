@@ -365,52 +365,60 @@
     </main>
 
     <script>
+        const sampleBoundUrl = 'https://figma-me-review-dxzmljpjyo.cn-hangzhou.fcapp.run/api/upload?sid=eagle_demo_123456&t=8f3c7d2a9b1e4f6c&client=eagle';
+
         const states = {
             idle: {
                 title: '点击选择或拍摄图片/视频',
                 cls: '',
                 progress: '0%',
-                url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
-                btn: '绑定电脑端插件',
+                url: sampleBoundUrl,
+                placeholder: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
+                btn: '断开连接',
                 hideUpload: false
             },
             uploading: {
                 title: '正在上传 12/24',
                 cls: 'uploading',
                 progress: '45%',
-                url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
-                btn: '绑定电脑端插件',
+                url: sampleBoundUrl,
+                placeholder: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
+                btn: '断开连接',
                 hideUpload: false
             },
             success: {
                 title: '全部上传成功（共 24 张）',
                 cls: 'success',
                 progress: '100%',
-                url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
-                btn: '绑定电脑端插件',
+                url: sampleBoundUrl,
+                placeholder: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
+                btn: '断开连接',
                 hideUpload: false
             },
             quota: {
                 title: '今日免费额度已用完\n激活永久会员后可继续上传',
                 cls: 'quota',
                 progress: '100%',
-                url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
-                btn: '绑定电脑端插件',
+                url: sampleBoundUrl,
+                placeholder: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
+                btn: '断开连接',
                 hideUpload: false
             },
             error: {
                 title: '第 1 张上传失败：网络错误',
                 cls: 'error',
                 progress: '100%',
-                url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
-                btn: '绑定电脑端插件',
+                url: sampleBoundUrl,
+                placeholder: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
+                btn: '断开连接',
                 hideUpload: false
             },
             unbound: {
                 title: '请先绑定电脑端插件',
                 cls: 'unbound',
                 progress: '0%',
-                url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
+                url: '',
+                placeholder: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
                 btn: '绑定电脑端插件',
                 hideUpload: false
             }
@@ -430,8 +438,8 @@
             uploadFrame.style.display = state.hideUpload ? 'none' : 'block';
             uploadTitle.textContent = state.title;
             progressFill.style.width = state.progress;
-            urlBox.value = '';
-            urlBox.placeholder = state.url;
+            urlBox.value = state.url;
+            urlBox.placeholder = state.placeholder;
             bindBtn.textContent = state.btn;
             buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.state === name));
         }

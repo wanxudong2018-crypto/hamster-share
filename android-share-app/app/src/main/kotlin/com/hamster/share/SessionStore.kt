@@ -13,6 +13,7 @@ object SessionStore {
     private const val KEY_SID = "sid"
     private const val KEY_T = "t"
     private const val KEY_CLIENT = "client"
+    private const val KEY_BIND_URL = "bind_url"
 
     private fun prefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -21,12 +22,13 @@ object SessionStore {
     /**
      * 保存会话绑定信息。
      */
-    fun save(context: Context, api: String, sid: String, t: String, client: String) {
+    fun save(context: Context, api: String, sid: String, t: String, client: String, bindUrl: String? = null) {
         prefs(context).edit()
             .putString(KEY_API, api.trim().trimEnd('/'))
             .putString(KEY_SID, sid.trim())
             .putString(KEY_T, t.trim())
             .putString(KEY_CLIENT, client.trim().ifEmpty { "eagle" })
+            .putString(KEY_BIND_URL, bindUrl?.trim())
             .apply()
     }
 
@@ -53,6 +55,12 @@ object SessionStore {
      */
     fun getClient(context: Context): String? =
         prefs(context).getString(KEY_CLIENT, null)
+
+    /**
+     * 读取用户当时粘贴并成功绑定的链接。
+     */
+    fun getBindUrl(context: Context): String? =
+        prefs(context).getString(KEY_BIND_URL, null)
 
     /**
      * 是否已经绑定了电脑会话。
