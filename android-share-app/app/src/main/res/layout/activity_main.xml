@@ -39,14 +39,18 @@
                 android:layout_marginTop="10dp"
                 android:layout_marginBottom="12dp" />
 
-            <LinearLayout
+            <FrameLayout
                 android:id="@+id/layoutUploadFrame"
                 android:layout_width="match_parent"
                 android:layout_height="250dp"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="@drawable/bg_status_card"
-                android:padding="12dp">
+                android:foregroundGravity="center">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/bg_upload_frame" />
 
                 <LinearLayout
                     android:id="@+id/uploadZone"
@@ -54,8 +58,10 @@
                     android:layout_height="match_parent"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:background="@drawable/bg_upload_zone"
-                    android:padding="14dp">
+                    android:paddingStart="24dp"
+                    android:paddingTop="24dp"
+                    android:paddingEnd="24dp"
+                    android:paddingBottom="24dp">
 
                     <ImageView
                         android:layout_width="64dp"
@@ -83,7 +89,7 @@
                         android:fontFamily="monospace"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
-            </LinearLayout>
+            </FrameLayout>
         </LinearLayout>
 
         <LinearLayout
