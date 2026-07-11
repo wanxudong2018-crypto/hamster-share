@@ -68,7 +68,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/uploading_pending"
                         android:textSize="15sp"
-                        android:textStyle="bold"
+                        android:textStyle="normal"
                         android:textColor="@color/on_surface"
                         android:gravity="center"
                         android:minHeight="40dp"
