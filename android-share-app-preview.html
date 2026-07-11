@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仓鼠快传 Android 预览（紧凑版）</title>
+    <style>
+        :root {
+            --blue: #5A85D0;
+            --blue-light: #B9C9EC;
+            --panel: #EAF0FB;
+            --line: #DDE8FF;
+            --input: #F3F5F9;
+            --text: #111111;
+            --sub: #8A8F99;
+            --cyan: #65C4EF;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #080808;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 24px;
+            color: var(--text);
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 390px 260px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .phone {
+            width: 390px;
+            height: 844px;
+            background: linear-gradient(180deg, #5A85D0 0%, #EDF0FB 51%, #EDF0FB 100%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero {
+            min-height: 320px;
+            padding: 32px 24px 12px;
+            color: #FFFFFF;
+        }
+
+        .brand {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .brand-img {
+            width: 180px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .brand-desc {
+            font-size: 15px;
+            margin-top: 10px;
+            opacity: 0.88;
+        }
+
+        .upload-frame {
+            height: 250px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 40px;
+            padding: 12px;
+            border: 11px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+        }
+
+        .upload-inner {
+            height: 100%;
+            border-radius: 20px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed #FFFFFF;
+            padding: 0 14px;
+        }
+
+        .folder {
+            width: 64px;
+            height: 60px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-title {
+            min-height: 20px;
+            font-size: 15px;
+            font-weight: bold;
+            text-align: center;
+            white-space: pre-line;
+            color: #1A1A2E;
+        }
+
+        .original-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+            color: #1A1A2E;
+            opacity: 0.85;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .check {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #9AA0A6;
+            border-radius: 6px;
+            background: #FFFFFF;
+        }
+
+        .progress {
+            display: none;
+            width: 160px;
+            height: 6px;
+            border-radius: 999px;
+            background: #C9D7F1;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            width: 45%;
+            height: 100%;
+            border-radius: inherit;
+            background: #52C41A;
+        }
+
+        .bottom {
+            margin-top: 0;
+            min-height: 380px;
+            background: #FFFFFF;
+            border-radius: 24px 24px 0 0;
+            padding: 20px 24px 28px;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .guide {
+            font-size: 14px;
+            color: #5A6B8A;
+        }
+
+        .url-box {
+            width: 100%;
+            min-height: 88px;
+            border: none;
+            resize: none;
+            outline: none;
+            border-radius: 18px;
+            background: var(--input);
+            color: #9A9A9A;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 14px;
+            font-family: inherit;
+            margin-bottom: 14px;
+        }
+
+        .black-btn {
+            width: 100%;
+            height: 48px;
+            border: none;
+            border-radius: 14px;
+            background: #111111;
+            color: #FFFFFF;
+            font-size: 17px;
+            font-weight: 900;
+        }
+
+        .member-btn {
+            display: none;
+            width: 176px;
+            height: 40px;
+            border: none;
+            border-radius: 12px;
+            background: #111111;
+            color: #FFFFFF;
+            font-size: 14px;
+            font-weight: 800;
+            margin-top: 10px;
+        }
+
+        .quota .folder {
+            margin-bottom: 12px;
+        }
+
+        .quota .upload-title {
+            min-height: 40px;
+            font-size: 14px;
+            font-weight: 800;
+            line-height: 1.45;
+        }
+
+        .quota .member-btn {
+            display: block;
+        }
+
+        .uploading .original-row,
+        .success .original-row,
+        .quota .original-row,
+        .error .original-row,
+        .unbound .original-row {
+            display: none;
+        }
+
+        .uploading .progress,
+        .success .progress,
+        .quota .progress,
+        .error .progress {
+            display: block;
+        }
+
+        .success .progress-fill,
+        .error .progress-fill {
+            width: 100%;
+        }
+
+        .quota .progress {
+            display: none;
+        }
+
+        .controls {
+            background: #FFFFFF;
+            border-radius: 16px;
+            padding: 18px;
+        }
+
+        .controls h2 {
+            font-size: 16px;
+            margin-bottom: 14px;
+        }
+
+        .state-btn {
+            width: 100%;
+            height: 42px;
+            border: 1px solid #DDE2EA;
+            border-radius: 10px;
+            background: #FFFFFF;
+            color: var(--text);
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .state-btn.active {
+            border-color: var(--blue);
+            background: #EEF3FF;
+            color: var(--blue);
+        }
+
+        .note {
+            margin-top: 10px;
+            color: var(--sub);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 760px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .phone {
+                width: min(390px, calc(100vw - 32px));
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="workspace">
+        <section class="phone" id="phone">
+            <div class="hero">
+                <div class="brand">
+                    <img class="brand-img" src="eagle-mobile-upload%20%E4%BA%91%E7%AB%AF/Eagle.png" alt="仓鼠快传 Send to Eagle">
+                    <div class="brand-desc">即刻将图片无线快传至 Eagle</div>
+                </div>
+                <div class="upload-frame">
+                    <div class="upload-inner">
+                        <div class="folder">
+                            <svg width="64" height="60" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6.66675 35.9997C6.66675 30.1086 11.4424 25.333 17.3334 25.333H46.6667H60.0001H101.667C107.558 25.333 112.333 30.1086 112.333 35.9997V89.333C112.333 95.2241 107.558 99.9997 101.667 99.9997H17.3334C11.4424 99.9997 6.66675 95.224 6.66675 89.333V35.9997Z" fill="#0099D1"/>
+                                <path d="M17.3337 19.75H41.4705C44.5198 19.7501 47.3995 21.1534 49.2791 23.5547L58.2087 34.9629C59.1091 36.113 60.4884 36.7852 61.949 36.7852H102.667C108.144 36.7852 112.584 41.2253 112.584 46.7021V89.333C112.584 94.8098 108.144 99.25 102.667 99.25H17.3337C11.8569 99.25 7.41675 94.8098 7.41675 89.333V29.667C7.41675 24.1902 11.8569 19.75 17.3337 19.75Z" fill="url(#paint0_linear_preview)" stroke="url(#paint1_linear_preview)" stroke-width="1.5"/>
+                                <path d="M17.638 87.574V85.954H16V77.638H17.638V76H22.714V77.638H24.37V79.438H22.534V77.818H17.818V80.896H21.094V82.678H17.818V85.774H22.534V84.136H24.37V85.954H22.714V87.574H17.638Z" fill="white"/>
+                                <path d="M28.1849 87.574V85.954H26.5469V80.896H28.1849V79.258H33.2609V80.896H34.9169V85.774H36.5549V87.574H34.7369V85.954H33.2609V87.574H28.1849ZM28.3649 85.774H33.0809V81.058H28.3649V85.774Z" fill="white"/>
+                                <path d="M39.47 90.832V89.212H37.832V87.412H39.65V89.032H44.384V85.954H39.47V84.316H37.832V80.896H39.47V79.258H44.564V80.896H46.202V89.212H44.564V90.832H39.47ZM39.65 84.136H44.384V81.058H39.65V84.136Z" fill="white"/>
+                                <path d="M48.0273 87.574V76H49.8453V87.574H48.0273Z" fill="white"/>
+                                <path d="M53.304 87.574V85.954H51.666V80.896H53.304V79.258H58.38V80.896H60.036V82.678H58.2V81.058H53.484V82.498H56.76V84.316H53.484V85.774H58.2V84.118H60.036V85.936H58.38V87.574H53.304Z" fill="white"/>
+                                <circle cx="97.6667" cy="82.6667" r="25.6667" fill="url(#paint2_linear_preview)" stroke="url(#paint3_linear_preview)" stroke-width="2"/>
+                                <path d="M111 82L98 69L85 82M98 69V95" stroke="url(#paint4_linear_preview)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+                                <defs>
+                                    <linearGradient id="paint0_linear_preview" x1="55.3334" y1="15.3333" x2="60.0001" y2="100" gradientUnits="userSpaceOnUse"><stop stop-color="#45DDFF"/><stop offset="1" stop-color="#4AA2F7"/></linearGradient>
+                                    <linearGradient id="paint1_linear_preview" x1="60.0001" y1="20" x2="60.0001" y2="100" gradientUnits="userSpaceOnUse"><stop stop-color="white"/><stop offset="1" stop-color="#21C7FF"/></linearGradient>
+                                    <linearGradient id="paint2_linear_preview" x1="97.6667" y1="56" x2="97.6667" y2="109.333" gradientUnits="userSpaceOnUse"><stop stop-color="#D5ECFF"/><stop offset="1" stop-color="white"/></linearGradient>
+                                    <linearGradient id="paint3_linear_preview" x1="97.6667" y1="56" x2="97.6667" y2="109.333" gradientUnits="userSpaceOnUse"><stop stop-color="white"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient>
+                                    <linearGradient id="paint4_linear_preview" x1="98" y1="69" x2="98" y2="95" gradientUnits="userSpaceOnUse"><stop stop-color="#0EC5F3"/><stop offset="1" stop-color="#0074E2"/></linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <div class="upload-title" id="uploadTitle">点击选择或拍摄截图</div>
+                        <div class="original-row">
+                            <span class="check"></span>
+                            <span>上传原图</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <button class="member-btn" id="memberBtn">激活永久会员</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bottom">
+                <div class="section-head">
+                    <div class="section-title">绑定插件地址</div>
+                    <div class="guide">视频引导</div>
+                </div>
+                <textarea class="url-box" id="urlBox">打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。</textarea>
+                <button class="black-btn" id="bindBtn">绑定电脑端插件</button>
+            </div>
+        </section>
+
+        <aside class="controls">
+            <h2>预览状态</h2>
+            <button class="state-btn active" data-state="idle">默认/绑定入口</button>
+            <button class="state-btn" data-state="bound">已绑定</button>
+            <button class="state-btn" data-state="uploading">正在上传</button>
+            <button class="state-btn" data-state="success">上传成功</button>
+            <button class="state-btn" data-state="quota">额度用完</button>
+            <button class="state-btn" data-state="error">上传失败</button>
+            <button class="state-btn" data-state="unbound">未绑定</button>
+            <p class="note">这个页面用于预览 APK 的视觉结构：顶部上传框展示状态，底部固定绑定入口。</p>
+        </aside>
+    </main>
+
+    <script>
+        const states = {
+            idle: {
+                title: '点击选择或拍摄图片/视频',
+                cls: '',
+                progress: '0%',
+                url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
+                btn: '绑定电脑端插件'
+            },
+            bound: {
+                title: '已绑定，可从系统分享传图',
+                cls: 'success',
+                progress: '100%',
+                url: '已绑定电脑端插件。现在可以从相册、微信、文件管理器原生分享图片到仓鼠快传。',
+                btn: '断开连接'
+            },
+            uploading: {
+                title: '正在上传 12/24',
+                cls: 'uploading',
+                progress: '45%',
+                url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里后即可从相册、微信、文件管理器原生分享传图。',
+                btn: '绑定电脑端插件'
+            },
+            success: {
+                title: '全部上传成功（共 24 张）',
+                cls: 'success',
+                progress: '100%',
+                url: '已发送至电脑端仓鼠快传，请在 Eagle 中查看导入结果。',
+                btn: '绑定电脑端插件'
+            },
+            quota: {
+                title: '今日免费额度已用完\n激活永久会员后可继续上传',
+                cls: 'quota',
+                progress: '100%',
+                url: '免费额度已用完。激活永久会员后可继续从相册、微信、文件管理器原生分享传图。',
+                btn: '绑定电脑端插件'
+            },
+            error: {
+                title: '第 1 张上传失败：网络错误',
+                cls: 'error',
+                progress: '100%',
+                url: '请检查网络，或重新绑定电脑端插件地址后再试。',
+                btn: '绑定电脑端插件'
+            },
+            unbound: {
+                title: '请先绑定电脑端插件',
+                cls: 'unbound',
+                progress: '0%',
+                url: '打开电脑端仓鼠快传，复制手机端链接或专属上传链接，粘贴到这里完成绑定。',
+                btn: '绑定电脑端插件'
+            }
+        };
+
+        const phone = document.getElementById('phone');
+        const uploadTitle = document.getElementById('uploadTitle');
+        const progressFill = document.getElementById('progressFill');
+        const urlBox = document.getElementById('urlBox');
+        const bindBtn = document.getElementById('bindBtn');
+        const buttons = Array.from(document.querySelectorAll('.state-btn'));
+
+        function renderState(name) {
+            const state = states[name];
+            phone.className = `phone ${state.cls}`.trim();
+            uploadTitle.textContent = state.title;
+            progressFill.style.width = state.progress;
+            urlBox.value = state.url;
+            bindBtn.textContent = state.btn;
+            buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.state === name));
+        }
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => renderState(btn.dataset.state));
+        });
+    </script>
+</body>
+</html>
