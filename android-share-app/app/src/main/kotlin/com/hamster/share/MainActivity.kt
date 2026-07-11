@@ -99,12 +99,13 @@ class MainActivity : AppCompatActivity() {
      * URL 格式：https://.../mobile-eagle.html?api=...&sid=...&t=...&client=eagle
      */
     private fun tryBind() {
-        val url = etUrl.text.toString().trim()
-        if (url.isEmpty()) {
+        val rawInput = etUrl.text.toString().trim()
+        if (rawInput.isEmpty()) {
             Toast.makeText(this, R.string.toast_empty_url, Toast.LENGTH_SHORT).show()
             return
         }
 
+        val url = normalizeBindingInput(rawInput)
         val params = parseBindingParams(url)
         val api = params["api"]
         val sid = params["sid"]
@@ -197,6 +198,22 @@ class MainActivity : AppCompatActivity() {
             grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivity(intent)
+    }
+
+    /**
+     * 兼容用户粘贴“手机端链接：<url>”或带换行说明的文本，只提取其中真正的 URL。
+     */
+    private fun normalizeBindingInput(input: String): String {
+        val cleaned = input
+            .replace('\u3000', ' ')
+            .trim()
+
+        val urlMatch = Regex("""https?://\S+""").find(cleaned)
+        if (urlMatch != null) {
+            return urlMatch.value.trimEnd('。', '，', ',', ';', '；', ')', '）', ']', '】')
+        }
+
+        return cleaned
     }
 
     /**
