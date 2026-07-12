@@ -3,6 +3,7 @@
     <color name="primary">#5A85D0</color>
     <color name="primary_dark">#3D6AB5</color>
     <color name="status_bar">#5AD095</color>
+    <color name="button_primary">#77DB89</color>
     <color name="on_primary">#FFFFFF</color>
     <color name="surface">#EDF0FB</color>
     <color name="surface_card">#FFFFFF</color>
