@@ -1,9 +1,7 @@
 package com.hamster.share
 
-import android.Manifest
 import android.content.ClipData
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -14,9 +12,7 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
-import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.io.File
 import java.net.URLDecoder
@@ -30,7 +26,7 @@ class MainActivity : AppCompatActivity() {
         private const val REQUEST_PICK_FILES = 2001
         private const val REQUEST_PICK_GALLERY = 2002
         private const val REQUEST_CAPTURE_IMAGE = 2003
-        private const val REQUEST_POST_NOTIFICATIONS = 2004
+        private const val PURCHASE_URL = "https://www.ifdian.net/item/9e5ce82c4ea411f19fd852540025c377?utm_source=copylink&utm_medium=link"
     }
 
     private lateinit var tvStatus: TextView
@@ -39,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etBoundUrl: EditText
     private lateinit var btnBind: Button
     private lateinit var btnDisconnect: Button
+    private lateinit var btnPurchaseMember: Button
     private lateinit var layoutBound: View
     private lateinit var layoutUnbound: View
     private lateinit var uploadZone: View
@@ -55,6 +52,7 @@ class MainActivity : AppCompatActivity() {
         etBoundUrl = findViewById(R.id.etBoundUrl)
         btnBind = findViewById(R.id.btnBind)
         btnDisconnect = findViewById(R.id.btnDisconnect)
+        btnPurchaseMember = findViewById(R.id.btnPurchaseMember)
         layoutBound = findViewById(R.id.layoutBound)
         layoutUnbound = findViewById(R.id.layoutUnbound)
         uploadZone = findViewById(R.id.uploadZone)
@@ -62,10 +60,16 @@ class MainActivity : AppCompatActivity() {
 
         btnBind.setOnClickListener { tryBind() }
         btnDisconnect.setOnClickListener { disconnect() }
-        uploadZone.setOnClickListener { openMediaChooser() }
+        btnPurchaseMember.setOnClickListener { openPurchasePage() }
+        uploadZone.setOnClickListener {
+            if (SessionStore.isQuotaExceededToday(this)) {
+                Toast.makeText(this, R.string.upload_quota_exceeded, Toast.LENGTH_SHORT).show()
+            } else {
+                openMediaChooser()
+            }
+        }
 
         refreshUI()
-        requestNotificationPermissionIfNeeded()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -107,7 +111,13 @@ class MainActivity : AppCompatActivity() {
             layoutBound.visibility = View.VISIBLE
             layoutUnbound.visibility = View.GONE
             layoutUploadFrame.visibility = View.VISIBLE
-            tvStatus.text = getString(R.string.status_bound)
+            if (SessionStore.isQuotaExceededToday(this)) {
+                tvStatus.text = getString(R.string.upload_quota_exceeded_detail)
+                btnPurchaseMember.visibility = View.VISIBLE
+            } else {
+                tvStatus.text = getString(R.string.status_bound)
+                btnPurchaseMember.visibility = View.GONE
+            }
             tvSessionInfo.text = ""
             etBoundUrl.setText(getBoundLinkPreview())
         } else {
@@ -115,6 +125,7 @@ class MainActivity : AppCompatActivity() {
             layoutUnbound.visibility = View.VISIBLE
             layoutUploadFrame.visibility = View.VISIBLE
             tvStatus.text = getString(R.string.status_unbound)
+            btnPurchaseMember.visibility = View.GONE
             tvSessionInfo.text = ""
         }
     }
@@ -146,6 +157,14 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, R.string.toast_bind_success, Toast.LENGTH_SHORT).show()
         etUrl.text.clear()
         refreshUI()
+    }
+
+    private fun openPurchasePage() {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PURCHASE_URL)))
+        } catch (e: Exception) {
+            Toast.makeText(this, R.string.toast_open_purchase_failed, Toast.LENGTH_LONG).show()
+        }
     }
 
     /**
@@ -231,17 +250,6 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, R.string.toast_open_picker_failed, Toast.LENGTH_SHORT).show()
         }
-    }
-
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
-
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-            REQUEST_POST_NOTIFICATIONS
-        )
     }
 
     private fun createCameraIntent(): Intent? {

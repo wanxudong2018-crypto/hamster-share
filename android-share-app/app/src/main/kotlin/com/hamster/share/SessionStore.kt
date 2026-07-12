@@ -14,6 +14,7 @@ object SessionStore {
     private const val KEY_T = "t"
     private const val KEY_CLIENT = "client"
     private const val KEY_BIND_URL = "bind_url"
+    private const val KEY_QUOTA_EXCEEDED_DATE = "quota_exceeded_date"
 
     private fun prefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -29,6 +30,7 @@ object SessionStore {
             .putString(KEY_T, t.trim())
             .putString(KEY_CLIENT, client.trim().ifEmpty { "eagle" })
             .putString(KEY_BIND_URL, bindUrl?.trim())
+            .remove(KEY_QUOTA_EXCEEDED_DATE)
             .apply()
     }
 
@@ -72,10 +74,31 @@ object SessionStore {
                 !p.getString(KEY_T, null).isNullOrEmpty()
     }
 
+    fun markQuotaExceeded(context: Context) {
+        prefs(context).edit()
+            .putString(KEY_QUOTA_EXCEEDED_DATE, todayKey())
+            .apply()
+    }
+
+    fun clearQuotaExceeded(context: Context) {
+        prefs(context).edit()
+            .remove(KEY_QUOTA_EXCEEDED_DATE)
+            .apply()
+    }
+
+    fun isQuotaExceededToday(context: Context): Boolean {
+        return prefs(context).getString(KEY_QUOTA_EXCEEDED_DATE, null) == todayKey()
+    }
+
     /**
      * 清除所有已保存的会话信息（断开连接）。
      */
     fun clear(context: Context) {
         prefs(context).edit().clear().apply()
+    }
+
+    private fun todayKey(): String {
+        return java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+            .format(java.util.Date())
     }
 }

@@ -1,27 +1,17 @@
 package com.hamster.share
 
-import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -40,11 +30,6 @@ import java.util.concurrent.TimeUnit
  */
 class ShareReceiverActivity : AppCompatActivity() {
 
-    companion object {
-        private const val NOTIFICATION_CHANNEL_ID = "hamster_share_uploads"
-        private const val NOTIFICATION_UPLOAD_ID = 1001
-    }
-
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
@@ -58,11 +43,10 @@ class ShareReceiverActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        createNotificationChannel()
 
         // 检查是否已绑定
         if (!SessionStore.isBound(this)) {
-            showShareResult(getString(R.string.app_name), getString(R.string.toast_not_bound))
+            showShareResult(getString(R.string.toast_not_bound))
             finishAfterDelay()
             return
         }
@@ -70,7 +54,7 @@ class ShareReceiverActivity : AppCompatActivity() {
         // 收集所有待上传的图片 URI
         val uris = collectImageUris(intent)
         if (uris.isEmpty()) {
-            showShareResult(getString(R.string.app_name), getString(R.string.toast_no_image))
+            showShareResult(getString(R.string.toast_no_image))
             finishAfterDelay()
             return
         }
@@ -80,7 +64,7 @@ class ShareReceiverActivity : AppCompatActivity() {
         // 立即将所有 content:// URI 的内容复制到缓存目录，因为 URI 权限是临时的
         val cachedFiles = uris.mapNotNull { uri -> copyToCache(uri) }
         if (cachedFiles.isEmpty()) {
-            showShareResult(getString(R.string.app_name), getString(R.string.toast_read_failed))
+            showShareResult(getString(R.string.toast_read_failed))
             finishAfterDelay()
             return
         }
@@ -143,7 +127,7 @@ class ShareReceiverActivity : AppCompatActivity() {
                 } else {
                     getString(R.string.upload_partial, successCount, failCount)
                 }
-                showShareResult(getString(R.string.app_name), msg)
+                showShareResult(msg)
                 finishAfterDelay()
                 return
             }
@@ -227,6 +211,7 @@ class ShareReceiverActivity : AppCompatActivity() {
                     }
 
                     if (ok) {
+                        SessionStore.clearQuotaExceeded(this@ShareReceiverActivity)
                         successCount++
                     } else {
                         failCount++
@@ -346,66 +331,19 @@ class ShareReceiverActivity : AppCompatActivity() {
 
     private fun showUploadError(index: Int, message: String) {
         val text = getString(R.string.upload_failed_detail, index, message)
-        showShareResult(getString(R.string.app_name), text)
+        showShareResult(text)
     }
 
     private fun showQuotaExceeded() {
-        showShareResult(
-            getString(R.string.upload_quota_exceeded),
-            getString(R.string.upload_quota_exceeded_detail)
-        )
+        SessionStore.markQuotaExceeded(this)
+        showShareResult(getString(R.string.upload_quota_exceeded_detail))
         finishAfterDelay()
     }
 
-    private fun showShareResult(title: String, message: String) {
+    private fun showShareResult(message: String) {
         runOnUiThread {
             Toast.makeText(this@ShareReceiverActivity, message, Toast.LENGTH_LONG).show()
-            showNotification(title, message)
         }
-    }
-
-    private fun showNotification(title: String, message: String) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-
-        val openAppIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            openAppIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_upload_folder)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-            .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setAutoCancel(true)
-            .build()
-
-        NotificationManagerCompat.from(this).notify(NOTIFICATION_UPLOAD_ID, notification)
-    }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-
-        val channel = NotificationChannel(
-            NOTIFICATION_CHANNEL_ID,
-            getString(R.string.app_name),
-            NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = getString(R.string.notification_channel_uploads)
-        }
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.createNotificationChannel(channel)
     }
 
     /**

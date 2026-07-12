@@ -91,6 +91,18 @@
                         android:gravity="center"
                         android:fontFamily="monospace"
                         android:layout_marginTop="4dp" />
+
+                    <Button
+                        android:id="@+id/btnPurchaseMember"
+                        android:layout_width="220dp"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@drawable/bg_member_button"
+                        android:text="@string/btn_purchase_member"
+                        android:textColor="@color/on_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
                 </LinearLayout>
             </FrameLayout>
         </LinearLayout>
