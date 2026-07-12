@@ -1,5 +1,6 @@
 package com.hamster.share
 
+import android.content.res.ColorStateList
 import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
@@ -12,6 +13,7 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.io.File
@@ -58,6 +60,8 @@ class MainActivity : AppCompatActivity() {
         uploadZone = findViewById(R.id.uploadZone)
         layoutUploadFrame = findViewById(R.id.layoutUploadFrame)
 
+        applyButtonColors()
+
         btnBind.setOnClickListener { tryBind() }
         btnDisconnect.setOnClickListener { disconnect() }
         btnPurchaseMember.setOnClickListener { openPurchasePage() }
@@ -70,6 +74,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         refreshUI()
+    }
+
+    private fun applyButtonColors() {
+        val tint = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.button_primary))
+        listOf(btnBind, btnDisconnect, btnPurchaseMember).forEach { button ->
+            button.backgroundTintList = tint
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -119,6 +130,7 @@ class MainActivity : AppCompatActivity() {
                 btnPurchaseMember.visibility = View.GONE
             }
             tvSessionInfo.text = ""
+            tvSessionInfo.visibility = View.GONE
             etBoundUrl.setText(getBoundLinkPreview())
         } else {
             layoutBound.visibility = View.GONE
@@ -127,6 +139,7 @@ class MainActivity : AppCompatActivity() {
             tvStatus.text = getString(R.string.status_unbound)
             btnPurchaseMember.visibility = View.GONE
             tvSessionInfo.text = ""
+            tvSessionInfo.visibility = View.GONE
         }
     }
 

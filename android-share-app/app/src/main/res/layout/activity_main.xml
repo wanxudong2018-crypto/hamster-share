@@ -80,7 +80,8 @@
                         android:textSize="14sp"
                         android:textStyle="normal"
                         android:textColor="@color/on_surface"
-                        android:gravity="center" />
+                        android:gravity="center"
+                        android:includeFontPadding="false" />
 
                     <TextView
                         android:id="@+id/tvSessionInfo"
@@ -90,13 +91,14 @@
                         android:textColor="@color/on_surface_variant"
                         android:gravity="center"
                         android:fontFamily="monospace"
-                        android:layout_marginTop="4dp" />
+                        android:layout_marginTop="4dp"
+                        android:visibility="gone" />
 
                     <Button
                         android:id="@+id/btnPurchaseMember"
                         android:layout_width="220dp"
                         android:layout_height="40dp"
-                        android:layout_marginTop="7dp"
+                        android:layout_marginTop="4dp"
                         android:background="@drawable/bg_member_button"
                         android:backgroundTint="@color/button_primary"
                         android:text="@string/btn_purchase_member"
