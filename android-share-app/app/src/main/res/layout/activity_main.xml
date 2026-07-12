@@ -96,9 +96,9 @@
 
                     <Button
                         android:id="@+id/btnPurchaseMember"
-                        android:layout_width="220dp"
+                        android:layout_width="110dp"
                         android:layout_height="40dp"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="8dp"
                         android:background="@drawable/bg_member_button"
                         android:backgroundTint="@color/button_primary"
                         android:text="@string/btn_purchase_member"
