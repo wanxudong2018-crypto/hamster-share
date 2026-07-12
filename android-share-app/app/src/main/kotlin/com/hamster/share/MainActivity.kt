@@ -1,7 +1,9 @@
 package com.hamster.share
 
+import android.Manifest
 import android.content.ClipData
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -12,7 +14,9 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
+import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.io.File
 import java.net.URLDecoder
@@ -26,6 +30,7 @@ class MainActivity : AppCompatActivity() {
         private const val REQUEST_PICK_FILES = 2001
         private const val REQUEST_PICK_GALLERY = 2002
         private const val REQUEST_CAPTURE_IMAGE = 2003
+        private const val REQUEST_POST_NOTIFICATIONS = 2004
     }
 
     private lateinit var tvStatus: TextView
@@ -60,6 +65,7 @@ class MainActivity : AppCompatActivity() {
         uploadZone.setOnClickListener { openMediaChooser() }
 
         refreshUI()
+        requestNotificationPermissionIfNeeded()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -225,6 +231,17 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, R.string.toast_open_picker_failed, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+            REQUEST_POST_NOTIFICATIONS
+        )
     }
 
     private fun createCameraIntent(): Intent? {

@@ -54,4 +54,5 @@
     <string name="toast_quota_exceeded">今日免费额度已用完，上传终止</string>
     <string name="toast_invalid_api">绑定的 API 地址无效，请重新绑定</string>
     <string name="toast_open_purchase_failed">无法打开激活页面，请稍后重试</string>
+    <string name="notification_channel_uploads">分享上传结果</string>
 </resources>

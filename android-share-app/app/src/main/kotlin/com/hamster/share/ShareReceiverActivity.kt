@@ -1,21 +1,27 @@
 package com.hamster.share
 
+import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
-import android.view.View
-import android.widget.Button
-import android.widget.ProgressBar
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -34,12 +40,10 @@ import java.util.concurrent.TimeUnit
  */
 class ShareReceiverActivity : AppCompatActivity() {
 
-    private val purchaseUrl = "https://www.ifdian.net/item/9e5ce82c4ea411f19fd852540025c377?utm_source=copylink&utm_medium=link"
-
-    private lateinit var tvProgress: TextView
-    private lateinit var progressBar: ProgressBar
-    private lateinit var btnActivateMember: Button
-    private lateinit var btnBindShortcut: Button
+    companion object {
+        private const val NOTIFICATION_CHANNEL_ID = "hamster_share_uploads"
+        private const val NOTIFICATION_UPLOAD_ID = 1001
+    }
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -54,36 +58,29 @@ class ShareReceiverActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_share)
-
-        tvProgress = findViewById(R.id.tvProgress)
-        progressBar = findViewById(R.id.progressBar)
-        btnActivateMember = findViewById(R.id.btnActivateMember)
-        btnActivateMember.setOnClickListener { openPurchasePage() }
-        btnBindShortcut = findViewById(R.id.btnBindShortcut)
-        btnBindShortcut.setOnClickListener { openBindPage() }
+        createNotificationChannel()
 
         // 检查是否已绑定
         if (!SessionStore.isBound(this)) {
-            tvProgress.text = getString(R.string.toast_not_bound)
-            Toast.makeText(this, R.string.toast_not_bound, Toast.LENGTH_LONG).show()
+            showShareResult(getString(R.string.app_name), getString(R.string.toast_not_bound))
+            finishAfterDelay()
             return
         }
 
         // 收集所有待上传的图片 URI
         val uris = collectImageUris(intent)
         if (uris.isEmpty()) {
-            tvProgress.text = getString(R.string.toast_no_image)
-            Toast.makeText(this, R.string.toast_no_image, Toast.LENGTH_SHORT).show()
+            showShareResult(getString(R.string.app_name), getString(R.string.toast_no_image))
             finishAfterDelay()
             return
         }
 
+        Toast.makeText(this, getString(R.string.uploading_progress, 1, uris.size), Toast.LENGTH_SHORT).show()
+
         // 立即将所有 content:// URI 的内容复制到缓存目录，因为 URI 权限是临时的
         val cachedFiles = uris.mapNotNull { uri -> copyToCache(uri) }
         if (cachedFiles.isEmpty()) {
-            tvProgress.text = getString(R.string.toast_read_failed)
-            Toast.makeText(this, R.string.toast_read_failed, Toast.LENGTH_SHORT).show()
+            showShareResult(getString(R.string.app_name), getString(R.string.toast_read_failed))
             finishAfterDelay()
             return
         }
@@ -146,28 +143,9 @@ class ShareReceiverActivity : AppCompatActivity() {
                 } else {
                     getString(R.string.upload_partial, successCount, failCount)
                 }
-                runOnUiThread {
-                    tvProgress.text = msg
-                    if (allSuccess) {
-                        progressBar.visibility = View.VISIBLE
-                        progressBar.isIndeterminate = false
-                        progressBar.max = 1
-                        progressBar.progress = 1
-                    } else {
-                        progressBar.visibility = View.GONE
-                    }
-                }
+                showShareResult(getString(R.string.app_name), msg)
                 finishAfterDelay()
                 return
-            }
-
-            // 更新进度
-            runOnUiThread {
-                progressBar.visibility = View.VISIBLE
-                tvProgress.text = getString(R.string.uploading_progress, index + 1, total)
-                progressBar.isIndeterminate = false
-                progressBar.max = total
-                progressBar.progress = index
             }
 
             val file = files[index]
@@ -367,37 +345,67 @@ class ShareReceiverActivity : AppCompatActivity() {
     }
 
     private fun showUploadError(index: Int, message: String) {
-        runOnUiThread {
-            progressBar.visibility = View.GONE
-            val text = getString(R.string.upload_failed_detail, index, message)
-            tvProgress.text = text
-            Toast.makeText(this@ShareReceiverActivity, text, Toast.LENGTH_LONG).show()
-        }
+        val text = getString(R.string.upload_failed_detail, index, message)
+        showShareResult(getString(R.string.app_name), text)
     }
 
     private fun showQuotaExceeded() {
+        showShareResult(
+            getString(R.string.upload_quota_exceeded),
+            getString(R.string.upload_quota_exceeded_detail)
+        )
+        finishAfterDelay()
+    }
+
+    private fun showShareResult(title: String, message: String) {
         runOnUiThread {
-            progressBar.isIndeterminate = false
-            progressBar.max = 1
-            progressBar.progress = 1
-            progressBar.visibility = View.GONE
-            tvProgress.text = getString(R.string.upload_quota_exceeded_detail)
-            btnActivateMember.visibility = View.VISIBLE
-            Toast.makeText(this@ShareReceiverActivity, R.string.toast_quota_exceeded, Toast.LENGTH_LONG).show()
+            Toast.makeText(this@ShareReceiverActivity, message, Toast.LENGTH_LONG).show()
+            showNotification(title, message)
         }
     }
 
-    private fun openPurchasePage() {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(purchaseUrl))
-            startActivity(intent)
-        } catch (e: Exception) {
-            Toast.makeText(this, R.string.toast_open_purchase_failed, Toast.LENGTH_LONG).show()
+    private fun showNotification(title: String, message: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
         }
+
+        val openAppIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            openAppIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_upload_folder)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setAutoCancel(true)
+            .build()
+
+        NotificationManagerCompat.from(this).notify(NOTIFICATION_UPLOAD_ID, notification)
     }
 
-    private fun openBindPage() {
-        startActivity(Intent(this, MainActivity::class.java))
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+        val channel = NotificationChannel(
+            NOTIFICATION_CHANNEL_ID,
+            getString(R.string.app_name),
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = getString(R.string.notification_channel_uploads)
+        }
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.createNotificationChannel(channel)
     }
 
     /**
