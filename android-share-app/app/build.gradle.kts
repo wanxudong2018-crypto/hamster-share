@@ -12,7 +12,7 @@ android {
         minSdk = 24
         targetSdk = 34
         versionCode = 15
-        versionName = "1.0.14"
+        versionName = "1.0.0"
     }
 
     buildTypes {
@@ -36,4 +36,12 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("仓鼠快传 V1.0.0.apk")
+        }
+    }
 }

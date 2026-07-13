@@ -37,8 +37,23 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Rename APK with version
+        run: |
+          VERSION=$(grep 'versionName' app/build.gradle.kts | sed 's/.*versionName = "\(.*\)".*/\1/')
+          mv app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/仓鼠快传 V${VERSION}.apk"
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: hamster-share-debug-apk
-          path: android-share-app/app/build/outputs/apk/debug/app-debug.apk
+          path: android-share-app/app/build/outputs/apk/debug/仓鼠快传 V*.apk
+
+      - name: Upload APK to GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: 仓鼠快传
+          files: android-share-app/app/build/outputs/apk/debug/仓鼠快传 V*.apk
+          body: 仓鼠快传最新版 APK
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
