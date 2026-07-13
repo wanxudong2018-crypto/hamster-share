@@ -101,6 +101,9 @@ class MainActivity : AppCompatActivity() {
         }
         pendingCameraUri = null
 
+        // 清理相机临时文件目录
+        cleanupCameraTempFiles()
+
         if (finalUris.isEmpty()) {
             Toast.makeText(this, R.string.toast_no_image, Toast.LENGTH_SHORT).show()
             return
@@ -302,7 +305,7 @@ class MainActivity : AppCompatActivity() {
                 putExtra(Intent.EXTRA_STREAM, uris.first())
             } else {
                 action = Intent.ACTION_SEND_MULTIPLE
-                type = "image/*"
+                type = "*/*"
                 putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
             }
         }
@@ -389,5 +392,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return result
+    }
+
+    /**
+     * 清理相机拍照产生的临时文件。
+     */
+    private fun cleanupCameraTempFiles() {
+        val dir = File(cacheDir, "camera")
+        if (dir.exists() && dir.isDirectory) {
+            dir.listFiles()?.forEach { it.delete() }
+        }
     }
 }

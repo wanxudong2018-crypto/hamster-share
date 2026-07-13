@@ -45,6 +45,12 @@ class ShareReceiverActivity : AppCompatActivity() {
     // 缓存文件列表，用于后续清理
     private val cacheFiles = mutableListOf<File>()
 
+    // 上传是否已全部完成（成功或失败都算完成）
+    private var uploadComplete = false
+
+    // 上传是否正在进行中
+    private var uploading = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -74,6 +80,7 @@ class ShareReceiverActivity : AppCompatActivity() {
         }
 
         // 开始逐张上传
+        uploading = true
         uploadAll(cachedFiles)
     }
 
@@ -125,6 +132,8 @@ class ShareReceiverActivity : AppCompatActivity() {
         fun uploadNext(index: Int) {
             if (index >= total) {
                 // 全部上传完成
+                uploadComplete = true
+                uploading = false
                 val allSuccess = failCount == 0
                 val msg = if (allSuccess) {
                     getString(R.string.upload_all_success, total)
@@ -132,6 +141,7 @@ class ShareReceiverActivity : AppCompatActivity() {
                     getString(R.string.upload_partial, successCount, failCount)
                 }
                 showShareResult(msg)
+                cleanupCache()
                 finishAfterDelay()
                 return
             }
@@ -141,7 +151,7 @@ class ShareReceiverActivity : AppCompatActivity() {
             val isVideo = mimeType.startsWith("video/")
             if (isVideo && file.length() > MAX_VIDEO_UPLOAD_BYTES) {
                 failCount++
-                showUploadError(index + 1, getString(R.string.toast_video_too_large))
+                showUploadError(index + 1, total, getString(R.string.toast_video_too_large))
                 uploadNext(index + 1)
                 return
             }
@@ -149,10 +159,13 @@ class ShareReceiverActivity : AppCompatActivity() {
 
             if (encodedImage == null) {
                 failCount++
-                showUploadError(index + 1, getString(R.string.toast_encode_failed))
+                showUploadError(index + 1, total, getString(R.string.toast_encode_failed))
                 uploadNext(index + 1)
                 return
             }
+
+            // 显示进度
+            showProgress(index + 1, total)
 
             // 生成唯一文件 ID
             val fileId = "img_${System.currentTimeMillis()}_${Integer.toHexString((Math.random() * 0xFFFFFF).toInt())}"
@@ -187,7 +200,7 @@ class ShareReceiverActivity : AppCompatActivity() {
 
             if (uploadUrl == null) {
                 failCount++
-                showUploadError(index + 1, getString(R.string.toast_invalid_api))
+                showUploadError(index + 1, total, getString(R.string.toast_invalid_api))
                 uploadNext(index + 1)
                 return
             }
@@ -200,7 +213,7 @@ class ShareReceiverActivity : AppCompatActivity() {
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: java.io.IOException) {
                     failCount++
-                    showUploadError(index + 1, getString(R.string.toast_network_error_detail, e.message ?: "unknown"))
+                    showUploadError(index + 1, total, getString(R.string.toast_network_error_detail, e.message ?: "unknown"))
                     uploadNext(index + 1)
                 }
 
@@ -222,19 +235,25 @@ class ShareReceiverActivity : AppCompatActivity() {
                         return
                     }
                     if (errorCode == "HEAVY_REQUIRES_PREMIUM" || errorCode == "ORIGINAL_REQUIRES_PREMIUM") {
+                        uploadComplete = true
+                        uploading = false
                         showShareResult(getString(R.string.upload_heavy_requires_member))
                         response.close()
+                        cleanupCache()
                         finishAfterDelay()
                         return
                     }
                     if (errorCode == "HEAVY_QUOTA_EXCEEDED" || errorCode == "ORIGINAL_QUOTA_EXCEEDED") {
+                        uploadComplete = true
+                        uploading = false
                         showShareResult(getString(R.string.upload_heavy_quota_exceeded))
                         response.close()
+                        cleanupCache()
                         finishAfterDelay()
                         return
                     }
                     if (errorCode == "VIDEO_TOO_LARGE") {
-                        showUploadError(index + 1, getString(R.string.toast_video_too_large))
+                        showUploadError(index + 1, total, getString(R.string.toast_video_too_large))
                         response.close()
                         uploadNext(index + 1)
                         return
@@ -252,7 +271,7 @@ class ShareReceiverActivity : AppCompatActivity() {
                             !response.isSuccessful -> "HTTP ${response.code}"
                             else -> "未知错误"
                         }
-                        showUploadError(index + 1, errMsg)
+                        showUploadError(index + 1, total, errMsg)
                     }
                     response.close()
                     uploadNext(index + 1)
@@ -261,6 +280,12 @@ class ShareReceiverActivity : AppCompatActivity() {
         }
 
         uploadNext(0)
+    }
+
+    private fun showProgress(current: Int, total: Int) {
+        runOnUiThread {
+            Toast.makeText(this, getString(R.string.uploading_progress, current, total), Toast.LENGTH_SHORT).show()
+        }
     }
 
     private data class EncodedImage(
@@ -272,6 +297,7 @@ class ShareReceiverActivity : AppCompatActivity() {
 
     /**
      * 与 mobile-eagle.html 保持一致：图片压到最长边 2048，JPEG 质量 85%。
+     * 对于非图片文件（视频等），采用流式 Base64 编码，避免将整个文件一次性读入内存。
      */
     private fun encodeImageForUpload(file: File): EncodedImage? {
         return try {
@@ -279,7 +305,8 @@ class ShareReceiverActivity : AppCompatActivity() {
             BitmapFactory.decodeFile(file.absolutePath, bounds)
 
             if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-                return encodeFileAsOriginal(file)
+                // 无法解码为图片（可能是视频或非图片格式），流式编码避免 OOM
+                return encodeFileStreaming(file)
             }
 
             val maxBound = 2048
@@ -289,7 +316,7 @@ class ShareReceiverActivity : AppCompatActivity() {
             }
 
             val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-            val bitmap = BitmapFactory.decodeFile(file.absolutePath, decodeOptions) ?: return encodeFileAsOriginal(file)
+            val bitmap = BitmapFactory.decodeFile(file.absolutePath, decodeOptions) ?: return encodeFileStreaming(file)
 
             val scale = minOf(1f, maxBound.toFloat() / maxOf(bitmap.width, bitmap.height).toFloat())
             val targetWidth = maxOf(1, (bitmap.width * scale).toInt())
@@ -319,12 +346,28 @@ class ShareReceiverActivity : AppCompatActivity() {
         }
     }
 
-    private fun encodeFileAsOriginal(file: File): EncodedImage? {
+    /**
+     * 流式编码：分块读取文件并分块 Base64 编码，避免一次性将大文件读入内存。
+     * 用于视频等大文件的上传。
+     */
+    private fun encodeFileStreaming(file: File): EncodedImage? {
         return try {
             val mimeType = guessMimeType(file)
-            val bytes = file.readBytes()
-            val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
-            EncodedImage("data:$mimeType;base64,$encoded", bytes.size, 0, 0)
+            val chunkSize = 3 * 1024 * 1024 // 每次最多读 3MB 原始数据
+            val buffer = ByteArray(chunkSize)
+            val base64Chunks = StringBuilder()
+            var totalBytes = 0L
+
+            file.inputStream().use { input ->
+                var read: Int
+                while (input.read(buffer).also { read = it } > 0) {
+                    totalBytes += read
+                    // 只对实际读取的字节进行 Base64 编码
+                    base64Chunks.append(Base64.encodeToString(buffer, 0, read, Base64.NO_WRAP))
+                }
+            }
+
+            EncodedImage("data:$mimeType;base64,$base64Chunks", totalBytes.toInt(), 0, 0)
         } catch (e: Exception) {
             null
         }
@@ -370,14 +413,17 @@ class ShareReceiverActivity : AppCompatActivity() {
         return "image/jpeg"
     }
 
-    private fun showUploadError(index: Int, message: String) {
+    private fun showUploadError(index: Int, total: Int, message: String) {
         val text = getString(R.string.upload_failed_detail, index, message)
         showShareResult(text)
     }
 
     private fun showQuotaExceeded() {
+        uploadComplete = true
+        uploading = false
         SessionStore.markQuotaExceeded(this)
         showShareResult(getString(R.string.upload_quota_exceeded_detail))
+        cleanupCache()
         finishAfterDelay()
     }
 
@@ -392,13 +438,12 @@ class ShareReceiverActivity : AppCompatActivity() {
      */
     private fun finishAfterDelay() {
         mainHandler.postDelayed({
-            cleanupCache()
             finish()
         }, 1500)
     }
 
     /**
-     * 清理缓存文件。
+     * 清理缓存文件。只在上传完成后调用。
      */
     private fun cleanupCache() {
         for (f in cacheFiles) {
@@ -409,6 +454,9 @@ class ShareReceiverActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        cleanupCache()
+        // 只有上传已完成才清理缓存；如果上传仍在进行，不清理，让上传回调自己处理
+        if (uploadComplete) {
+            cleanupCache()
+        }
     }
 }

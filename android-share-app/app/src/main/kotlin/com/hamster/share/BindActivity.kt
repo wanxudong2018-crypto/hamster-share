@@ -35,7 +35,17 @@ class BindActivity : AppCompatActivity() {
             return
         }
 
-        SessionStore.save(this, api, sid, t, client ?: "eagle")
+        // 将深链参数重新构造为 https 格式的原始链接，方便 MainActivity 回显
+        val bindUrl = Uri.parse("$api/mobile-eagle.html")
+            .buildUpon()
+            .appendQueryParameter("api", api)
+            .appendQueryParameter("sid", sid)
+            .appendQueryParameter("t", t)
+            .appendQueryParameter("client", client ?: "eagle")
+            .build()
+            .toString()
+
+        SessionStore.save(this, api, sid, t, client ?: "eagle", bindUrl)
         Toast.makeText(this, R.string.toast_bind_success, Toast.LENGTH_SHORT).show()
 
         // 短暂延迟后跳转主界面
