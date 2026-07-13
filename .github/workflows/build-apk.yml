@@ -2,12 +2,11 @@ name: Build APK
 
 on:
   push:
-    paths:
-      - 'android-share-app/**'
-  pull_request:
-    paths:
-      - 'android-share-app/**'
+    branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -49,7 +48,6 @@ jobs:
           path: android-share-app/app/build/outputs/apk/debug/仓鼠快传 V*.apk
 
       - name: Upload APK to GitHub Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: 仓鼠快传
