@@ -47,6 +47,24 @@ jobs:
           name: hamster-share-debug-apk
           path: android-share-app/app/build/outputs/apk/debug/仓鼠快传 V*.apk
 
+      - name: Delete old release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="仓鼠快传"
+          REPO="${{ github.repository }}"
+          # Delete existing release if it exists
+          RELEASE_ID=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/releases/tags/$TAG" | jq -r '.id // empty')
+          if [ -n "$RELEASE_ID" ]; then
+            curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$REPO/releases/$RELEASE_ID"
+            echo "Deleted old release (id=$RELEASE_ID)"
+          fi
+          # Delete existing tag if it exists
+          curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/git/refs/tags/$TAG" 2>/dev/null || true
+
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
