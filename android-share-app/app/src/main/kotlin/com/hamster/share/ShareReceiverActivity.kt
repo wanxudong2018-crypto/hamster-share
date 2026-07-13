@@ -30,6 +30,10 @@ import java.util.concurrent.TimeUnit
  */
 class ShareReceiverActivity : AppCompatActivity() {
 
+    companion object {
+        private const val MAX_VIDEO_UPLOAD_BYTES = 20L * 1024L * 1024L
+    }
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
@@ -133,6 +137,14 @@ class ShareReceiverActivity : AppCompatActivity() {
             }
 
             val file = files[index]
+            val mimeType = guessMimeType(file)
+            val isVideo = mimeType.startsWith("video/")
+            if (isVideo && file.length() > MAX_VIDEO_UPLOAD_BYTES) {
+                failCount++
+                showUploadError(index + 1, getString(R.string.toast_video_too_large))
+                uploadNext(index + 1)
+                return
+            }
             val encodedImage = encodeImageForUpload(file)
 
             if (encodedImage == null) {
@@ -207,6 +219,24 @@ class ShareReceiverActivity : AppCompatActivity() {
                     if (errorCode == "QUOTA_EXCEEDED") {
                         showQuotaExceeded()
                         response.close()
+                        return
+                    }
+                    if (errorCode == "HEAVY_REQUIRES_PREMIUM" || errorCode == "ORIGINAL_REQUIRES_PREMIUM") {
+                        showShareResult(getString(R.string.upload_heavy_requires_member))
+                        response.close()
+                        finishAfterDelay()
+                        return
+                    }
+                    if (errorCode == "HEAVY_QUOTA_EXCEEDED" || errorCode == "ORIGINAL_QUOTA_EXCEEDED") {
+                        showShareResult(getString(R.string.upload_heavy_quota_exceeded))
+                        response.close()
+                        finishAfterDelay()
+                        return
+                    }
+                    if (errorCode == "VIDEO_TOO_LARGE") {
+                        showUploadError(index + 1, getString(R.string.toast_video_too_large))
+                        response.close()
+                        uploadNext(index + 1)
                         return
                     }
 
@@ -326,6 +356,17 @@ class ShareReceiverActivity : AppCompatActivity() {
             && bytes[8] == 0x57.toByte() && bytes[9] == 0x45.toByte()
             && bytes[10] == 0x42.toByte() && bytes[11] == 0x50.toByte()
         ) return "image/webp"
+        // MP4/MOV 文件通常在 4-11 字节包含 ftyp。
+        if (bytes.size >= 12 && bytes[4] == 0x66.toByte() && bytes[5] == 0x74.toByte()
+            && bytes[6] == 0x79.toByte() && bytes[7] == 0x70.toByte()
+        ) {
+            val brand = String(bytes.copyOfRange(8, 12), Charsets.ISO_8859_1).lowercase()
+            return if (brand.contains("qt")) "video/quicktime" else "video/mp4"
+        }
+        // WebM/Matroska EBML 文件头：1A 45 DF A3
+        if (bytes.size >= 4 && bytes[0] == 0x1A.toByte() && bytes[1] == 0x45.toByte()
+            && bytes[2] == 0xDF.toByte() && bytes[3] == 0xA3.toByte()
+        ) return "video/webm"
         return "image/jpeg"
     }
 

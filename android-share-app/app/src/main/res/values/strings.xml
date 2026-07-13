@@ -25,12 +25,14 @@
     <!-- 上传界面 -->
     <string name="uploading_progress">正在上传 %1$d/%2$d</string>
     <string name="uploading_pending">正在准备上传</string>
-    <string name="upload_all_success">全部上传成功（共 %1$d 张）</string>
-    <string name="upload_partial">成功 %1$d 张，失败 %2$d 张</string>
+    <string name="upload_all_success">全部上传成功（共 %1$d 个文件）</string>
+    <string name="upload_partial">成功 %1$d 个，失败 %2$d 个</string>
     <string name="upload_quota_exceeded">今日免费额度已用完</string>
-    <string name="upload_quota_exceeded_detail">今日免费额度已用完\n激活永久会员后可继续上传</string>
-    <string name="upload_failed_detail">第 %1$d 张上传失败：%2$s</string>
-    <string name="btn_activate_member">激活永久会员</string>
+    <string name="upload_quota_exceeded_detail">今日免费额度已用完\n激活会员后可继续上传</string>
+    <string name="upload_failed_detail">第 %1$d 个文件上传失败：%2$s</string>
+    <string name="upload_heavy_requires_member">原图/视频上传仅限会员使用</string>
+    <string name="upload_heavy_quota_exceeded">今日原图/视频额度已用完，请明天再用</string>
+    <string name="btn_activate_member">激活会员</string>
     <string name="btn_purchase_member">购买会员</string>
 
     <!-- Toast 提示 -->
@@ -53,6 +55,7 @@
     <string name="toast_network_error">第 %1$d 张上传失败（网络错误）</string>
     <string name="toast_network_error_detail">网络错误：%1$s</string>
     <string name="toast_quota_exceeded">今日免费额度已用完，上传终止</string>
+    <string name="toast_video_too_large">单个视频最大支持 20MB</string>
     <string name="toast_invalid_api">绑定的 API 地址无效，请重新绑定</string>
     <string name="toast_open_purchase_failed">无法打开激活页面，请稍后重试</string>
 </resources>
