@@ -29,10 +29,12 @@ class MainActivity : AppCompatActivity() {
         private const val REQUEST_PICK_GALLERY = 2002
         private const val REQUEST_CAPTURE_IMAGE = 2003
         private const val PURCHASE_URL = "https://www.ifdian.net/item/9e5ce82c4ea411f19fd852540025c377?utm_source=copylink&utm_medium=link"
+        private const val VIDEO_GUIDE_URL = "https://my.feishu.cn/wiki/PhsxwXOBtiy5HLk1GmqcxLP0nkd?from=from_copylink"
     }
 
     private lateinit var tvStatus: TextView
     private lateinit var tvSessionInfo: TextView
+    private lateinit var tvVideoGuide: TextView
     private lateinit var etUrl: EditText
     private lateinit var etBoundUrl: EditText
     private lateinit var btnBind: Button
@@ -50,6 +52,7 @@ class MainActivity : AppCompatActivity() {
 
         tvStatus = findViewById(R.id.tvStatus)
         tvSessionInfo = findViewById(R.id.tvSessionInfo)
+        tvVideoGuide = findViewById(R.id.tvVideoGuide)
         etUrl = findViewById(R.id.etUrl)
         etBoundUrl = findViewById(R.id.etBoundUrl)
         btnBind = findViewById(R.id.btnBind)
@@ -65,6 +68,7 @@ class MainActivity : AppCompatActivity() {
         btnBind.setOnClickListener { tryBind() }
         btnDisconnect.setOnClickListener { disconnect() }
         btnPurchaseMember.setOnClickListener { openPurchasePage() }
+        tvVideoGuide.setOnClickListener { openVideoGuide() }
         uploadZone.setOnClickListener {
             if (SessionStore.isQuotaExceededToday(this)) {
                 Toast.makeText(this, R.string.upload_quota_exceeded, Toast.LENGTH_SHORT).show()
@@ -180,6 +184,14 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PURCHASE_URL)))
         } catch (e: Exception) {
             Toast.makeText(this, R.string.toast_open_purchase_failed, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun openVideoGuide() {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(VIDEO_GUIDE_URL)))
+        } catch (e: Exception) {
+            Toast.makeText(this, R.string.toast_open_guide_failed, Toast.LENGTH_LONG).show()
         }
     }
 
